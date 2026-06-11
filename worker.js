@@ -17,19 +17,26 @@ async function sha1(message) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, X-App-Key, X-App-Secret',
+  'Access-Control-Max-Age': '86400',
+};
+
 export default {
-  async fetch(request, env) {
+  async fetch(request) {
+    const url = new URL(request.url);
+    
     // CORS 预检
     if (request.method === 'OPTIONS') {
-      return new Response(null, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PATCH, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-App-Key, X-App-Secret',
-          'Access-Control-Max-Age': '86400',
-        },
-      });
+      return new Response(null, { headers: corsHeaders });
     }
+
+    // 解析路径：去掉开头的 /proxy
+    let apiPath = url.pathname.replace(/^\/proxy/, '');
+    if (!apiPath.startsWith('/')) apiPath = '/' + apiPath;
+    if (url.search) apiPath += url.search;
 
     // 读取前端传来的 AppKey 和 AppSecret
     const appKey = request.headers.get('X-App-Key');
@@ -38,7 +45,7 @@ export default {
     if (!appKey || !appSecret) {
       return new Response(JSON.stringify({ error: 'Missing X-App-Key or X-App-Secret header' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
 
@@ -46,11 +53,6 @@ export default {
     const nonce = Math.random().toString(36).substring(2, 15);
     const curTime = Math.floor(Date.now() / 1000).toString();
     const checkSum = await sha1(appSecret + nonce + curTime);
-
-    // 解析请求路径（去掉开头的 /proxy）
-    const url = new URL(request.url);
-    let apiPath = url.pathname.replace(/^\/proxy/, '');
-    if (url.search) apiPath += url.search;
 
     // 构建转发请求
     const targetUrl = YUNXIN_ENDPOINT + apiPath;
@@ -80,13 +82,13 @@ export default {
         status: response.status,
         headers: {
           'Content-Type': 'application/json;charset=utf-8',
-          'Access-Control-Allow-Origin': '*',
+          ...corsHeaders,
         },
       });
     } catch (err) {
       return new Response(JSON.stringify({ error: err.message }), {
         status: 500,
-        headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
       });
     }
   },
