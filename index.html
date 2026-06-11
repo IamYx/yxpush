@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>云信用户标签管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        h1 { color: white; text-align: center; margin-bottom: 30px; font-size: 2.2em; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .card { background: white; border-radius: 16px; padding: 24px; margin-bottom: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        .card-title { font-size: 1.2em; color: #333; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #667eea; display: flex; align-items: center; gap: 10px; }
+        .card-title::before { content: ''; width: 4px; height: 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 2px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; color: #555; font-weight: 500; font-size: 14px; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; transition: all 0.3s ease; }
+        .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .form-group textarea { resize: vertical; min-height: 80px; font-family: monospace; }
+        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; }
+        .btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(17, 153, 142, 0.4); }
+        .btn-danger { background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%); color: white; }
+        .btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(235, 51, 73, 0.4); }
+        .btn-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
+        .btn-warning:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(240, 147, 251, 0.4); }
+        .btn-info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color: white; }
+        .btn-info:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(79, 172, 254, 0.4); }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+        .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: #f5f5f5; padding: 4px; border-radius: 12px; flex-wrap: wrap; }
+        .tab { flex: 1; min-width: 80px; padding: 12px 16px; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #666; transition: all 0.3s ease; }
+        .tab.active { background: white; color: #667eea; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .tab:hover:not(.active) { color: #333; background: rgba(255,255,255,0.5); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .result-box { margin-top: 20px; padding: 16px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; }
+        .result-box.success { border-left-color: #38ef7d; background: #f0fff4; }
+        .result-box.error { border-left-color: #f45c43; background: #fff5f5; }
+        .result-box pre { font-size: 13px; color: #333; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+        .result-title { font-weight: 600; margin-bottom: 8px; color: #333; }
+        .tag-input-wrapper { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; background: #f8f9fa; border-radius: 8px; min-height: 50px; align-items: center; }
+        .tag { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 20px; font-size: 13px; }
+        .tag-remove { cursor: pointer; font-size: 16px; line-height: 1; opacity: 0.8; }
+        .tag-remove:hover { opacity: 1; }
+        .tag-input { border: none; background: transparent; outline: none; padding: 6px; font-size: 14px; flex: 1; min-width: 100px; }
+        .user-tag-row { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; flex-wrap: wrap; }
+        .user-tag-row .account-input { flex: 0 0 200px; padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; }
+        .user-tag-row .account-input:focus { outline: none; border-color: #667eea; }
+        .user-tag-row .tag-input-wrapper { flex: 1; min-width: 200px; }
+        .remove-row-btn { padding: 8px 12px; background: #fee; color: #f45c43; border: none; border-radius: 6px; cursor: pointer; font-size: 18px; }
+        .remove-row-btn:hover { background: #fdd; }
+        .add-row-btn { padding: 10px 16px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 8px; cursor: pointer; width: 100%; color: #666; font-size: 14px; margin-top: 8px; }
+        .add-row-btn:hover { background: #e8e8e8; border-color: #667eea; color: #667eea; }
+        .checkbox-group { display: flex; flex-wrap: wrap; gap: 16px; }
+        .checkbox-item { display: flex; align-items: center; gap: 6px; }
+        .checkbox-item input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .checkbox-item label { margin: 0; cursor: pointer; }
+        .info-box { padding: 12px 16px; background: #e3f2fd; border-radius: 8px; color: #1565c0; font-size: 13px; margin-bottom: 16px; }
+        .warning-box { padding: 12px 16px; background: #fff3e0; border-radius: 8px; color: #e65100; font-size: 13px; margin-top: 12px; }
+        .config-saved { color: #38ef7d; font-size: 12px; margin-left: 10px; }
+        .toggle-config { float: right; font-size: 12px; color: #667eea; cursor: pointer; text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏷️ 云信用户标签管理后台</h1>
+
+        <div class="card">
+            <div class="card-title">
+                API 配置
+                <span class="toggle-config" onclick="toggleConfig()">收起/展开</span>
+                <span id="config-status" class="config-saved" style="display:none;">✓ 已保存</span>
+            </div>
+            <div id="config-section">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>App Key</label>
+                        <input type="text" id="appKey" placeholder="输入你的 App Key" onchange="saveConfig()">
+                    </div>
+                    <div class="form-group">
+                        <label>App Secret</label>
+                        <input type="password" id="appSecret" placeholder="输入你的 App Secret" onchange="saveConfig()">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>服务地址 (Endpoint)</label>
+                        <select id="endpoint" onchange="saveConfig()">
+                            <option value="https://api.netease.im">中国大陆 (api.netease.im)</option>
+                            <option value="https://api-sg01.netease.im">海外新加坡 (api-sg01.netease.im)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="warning-box">
+                    ⚠️ <strong>安全提示：</strong>配置信息保存在浏览器本地 (localStorage)，不会上传到任何服务器。<br>
+                    如果云信 API 返回跨域错误 (CORS)，可能需要联系云信开通浏览器直接调用权限，或使用自建代理方案。
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('add', this)">添加标签</button>
+                <button class="tab" onclick="switchTab('replace', this)">覆盖标签</button>
+                <button class="tab" onclick="switchTab('query', this)">查询标签</button>
+                <button class="tab" onclick="switchTab('delete', this)">删除标签</button>
+                <button class="tab" onclick="switchTab('clear', this)">清空标签</button>
+                <button class="tab" onclick="switchTab('push', this)">标签推送</button>
+            </div>
+
+            <div id="tab-add" class="tab-content active">
+                <div class="card-title">添加用户标签</div>
+                <div class="info-box">每次最多为 100 个用户添加标签，单个用户最多 10 个标签，单个标签最大长度 50。</div>
+                <div id="add-user-tags-container">
+                    <div class="user-tag-row">
+                        <input type="text" placeholder="用户账号 (account_id)" class="account-input">
+                        <div class="tag-input-wrapper">
+                            <input type="text" class="tag-input" placeholder="输入标签后按回车" onkeydown="handleTagInput(event, this)">
+                        </div>
+                        <button class="remove-row-btn" onclick="removeRow(this)">×</button>
+                    </div>
+                </div>
+                <button class="add-row-btn" onclick="addUserTagRow('add')">+ 添加用户</button>
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="addTags()">添加标签</button>
+                </div>
+                <div id="add-result"></div>
+            </div>
+
+            <div id="tab-replace" class="tab-content">
+                <div class="card-title">覆盖添加用户标签</div>
+                <div class="info-box">新设置的标签将完全覆盖用户的历史标签。每次最多为 100 个用户覆盖标签。</div>
+                <div id="replace-user-tags-container">
+                    <div class="user-tag-row">
+                        <input type="text" placeholder="用户账号 (account_id)" class="account-input">
+                        <div class="tag-input-wrapper">
+                            <input type="text" class="tag-input" placeholder="输入标签后按回车" onkeydown="handleTagInput(event, this)">
+                        </div>
+                        <button class="remove-row-btn" onclick="removeRow(this)">×</button>
+                    </div>
+                </div>
+                <button class="add-row-btn" onclick="addUserTagRow('replace')">+ 添加用户</button>
+                <div class="btn-group">
+                    <button class="btn btn-warning" onclick="replaceTags()">覆盖标签</button>
+                </div>
+                <div id="replace-result"></div>
+            </div>
+
+            <div id="tab-query" class="tab-content">
+                <div class="card-title">查询用户标签</div>
+                <div class="info-box">每次最多查询 100 个用户的标签。</div>
+                <div class="form-group">
+                    <label>用户账号列表（每行一个）</label>
+                    <textarea id="query-accounts" placeholder="zhangsan&#10;lisi&#10;wangwu" rows="5"></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-info" onclick="queryTags()">查询标签</button>
+                </div>
+                <div id="query-result"></div>
+            </div>
+
+            <div id="tab-delete" class="tab-content">
+                <div class="card-title">删除用户标签</div>
+                <div class="info-box">每次最多删除 100 个用户的标签，单个用户最多删除 10 个标签。</div>
+                <div id="delete-user-tags-container">
+                    <div class="user-tag-row">
+                        <input type="text" placeholder="用户账号 (account_id)" class="account-input">
+                        <div class="tag-input-wrapper">
+                            <input type="text" class="tag-input" placeholder="输入要删除的标签后按回车" onkeydown="handleTagInput(event, this)">
+                        </div>
+                        <button class="remove-row-btn" onclick="removeRow(this)">×</button>
+                    </div>
+                </div>
+                <button class="add-row-btn" onclick="addUserTagRow('delete')">+ 添加用户</button>
+                <div class="btn-group">
+                    <button class="btn btn-danger" onclick="deleteTags()">删除标签</button>
+                </div>
+                <div id="delete-result"></div>
+            </div>
+
+            <div id="tab-clear" class="tab-content">
+                <div class="card-title">清空全部用户标签</div>
+                <div class="info-box">清空指定用户的全部标签，每次最多清空 100 个用户。⚠️ 此操作不可恢复！</div>
+                <div class="form-group">
+                    <label>用户账号列表（每行一个）</label>
+                    <textarea id="clear-accounts" placeholder="zhangsan&#10;lisi&#10;wangwu" rows="5"></textarea>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-danger" onclick="clearTags()">⚠️ 清空全部标签</button>
+                </div>
+                <div id="clear-result"></div>
+            </div>
+
+            <div id="tab-push" class="tab-content">
+                <div class="card-title">发送标签用户推送</div>
+                <div class="info-box">频率限制：1次/10分钟，100次/天。超限将被屏蔽1分钟。</div>
+                <div class="form-group">
+                    <label>推送内容 (在线推送)</label>
+                    <textarea id="push-content" placeholder="输入推送内容" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>推送类型</label>
+                        <select id="push-target-type">
+                            <option value="1">在线推送 + 厂商推送</option>
+                            <option value="2">仅厂商推送</option>
+                            <option value="3">仅在线推送</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>发送者账号</label>
+                        <input type="text" id="push-sender" placeholder="sender_account_id">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>推送目标平台</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="os-ios" value="ios" checked><label for="os-ios">iOS</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="os-aos" value="aos" checked><label for="os-aos">Android</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="os-pc" value="pc" checked><label for="os-pc">PC</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="os-web" value="web" checked><label for="os-web">Web</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="os-mac" value="mac" checked><label for="os-mac">Mac</label></div>
+                        <div class="checkbox-item"><input type="checkbox" id="os-harmony" value="harmony"><label for="os-harmony">Harmony</label></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>厂商推送文案</label>
+                    <input type="text" id="push-content-vendor" placeholder="厂商推送内容">
+                </div>
+                <div class="form-group">
+                    <label>厂商推送 Payload (JSON)</label>
+                    <textarea id="push-payload" placeholder='{"key": "value"}' rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>标签条件 - 交集 (tags_and)</label>
+                        <input type="text" id="push-tags-and" placeholder="标签1,标签2 (逗号分隔)">
+                    </div>
+                    <div class="form-group">
+                        <label>标签条件 - 并集 (tags_or)</label>
+                        <input type="text" id="push-tags-or" placeholder="标签3,标签4 (逗号分隔)">
+                    </div>
+                    <div class="form-group">
+                        <label>标签条件 - 非集 (tags_not)</label>
+                        <input type="text" id="push-tags-not" placeholder="标签5,标签6 (逗号分隔)">
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-success" onclick="sendPush()">发送推送</button>
+                </div>
+                <div id="push-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== 配置管理 ==========
+        function loadConfig() {
+            document.getElementById('appKey').value = localStorage.getItem('yxpush_appKey') || '';
+            document.getElementById('appSecret').value = localStorage.getItem('yxpush_appSecret') || '';
+            document.getElementById('endpoint').value = localStorage.getItem('yxpush_endpoint') || 'https://api.netease.im';
+            if (localStorage.getItem('yxpush_appKey') && localStorage.getItem('yxpush_appSecret')) {
+                document.getElementById('config-status').style.display = 'inline';
+            }
+        }
+
+        function saveConfig() {
+            localStorage.setItem('yxpush_appKey', document.getElementById('appKey').value.trim());
+            localStorage.setItem('yxpush_appSecret', document.getElementById('appSecret').value.trim());
+            localStorage.setItem('yxpush_endpoint', document.getElementById('endpoint').value);
+            var s = document.getElementById('config-status');
+            s.style.display = 'inline';
+            setTimeout(function() { s.style.display = 'none'; }, 2000);
+        }
+
+        function toggleConfig() {
+            var sec = document.getElementById('config-section');
+            sec.style.display = sec.style.display === 'none' ? 'block' : 'none';
+        }
+
+        loadConfig();
+
+        // ========== SHA1 ==========
+        async function sha1(message) {
+            var buf = new TextEncoder().encode(message);
+            var hash = await crypto.subtle.digest('SHA-1', buf);
+            return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+        }
+
+        async function getHeaders() {
+            var appKey = document.getElementById('appKey').value.trim();
+            var appSecret = document.getElementById('appSecret').value.trim();
+            if (!appKey || !appSecret) throw new Error('请先在上方配置 App Key 和 App Secret');
+            var nonce = Math.random().toString(36).substring(2, 15);
+            var curTime = Math.floor(Date.now() / 1000).toString();
+            var checkSum = await sha1(appSecret + nonce + curTime);
+            return { 'Content-Type': 'application/json;charset=utf-8', 'AppKey': appKey, 'Nonce': nonce, 'CurTime': curTime, 'CheckSum': checkSum };
+        }
+
+        // ========== Tab ==========
+        function switchTab(name, btn) {
+            document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
+            btn.classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+
+        // ========== Tags Input ==========
+        function handleTagInput(event, input) {
+            if (event.key === 'Enter' && input.value.trim()) {
+                event.preventDefault();
+                var tag = input.value.trim();
+                var wrapper = input.parentElement;
+                var existing = Array.from(wrapper.querySelectorAll('.tag')).map(function(t) { return t.dataset.value; });
+                if (existing.indexOf(tag) >= 0) { input.value = ''; return; }
+                var el = document.createElement('span');
+                el.className = 'tag';
+                el.dataset.value = tag;
+                el.innerHTML = tag + ' <span class="tag-remove" onclick="removeTag(this)">×</span>';
+                wrapper.insertBefore(el, input);
+                input.value = '';
+            }
+        }
+
+        function removeTag(btn) { btn.parentElement.remove(); }
+
+        function addUserTagRow(type) {
+            var container = document.getElementById(type + '-user-tags-container');
+            var row = document.createElement('div');
+            row.className = 'user-tag-row';
+            row.innerHTML = '<input type="text" placeholder="用户账号 (account_id)" class="account-input">' +
+                '<div class="tag-input-wrapper"><input type="text" class="tag-input" placeholder="输入标签后按回车" onkeydown="handleTagInput(event, this)"></div>' +
+                '<button class="remove-row-btn" onclick="removeRow(this)">×</button>';
+            container.appendChild(row);
+        }
+
+        function removeRow(btn) {
+            var container = btn.closest('[id$="-container"]');
+            if (container.children.length > 1) btn.parentElement.remove();
+        }
+
+        function getUserTagsData(type) {
+            var container = document.getElementById(type + '-user-tags-container');
+            var rows = container.querySelectorAll('.user-tag-row');
+            var data = [];
+            rows.forEach(function(row) {
+                var accountId = row.querySelector('.account-input').value.trim();
+                var tags = Array.from(row.querySelectorAll('.tag')).map(function(t) { return t.dataset.value; });
+                if (accountId && tags.length > 0) data.push({ account_id: accountId, tags: tags });
+            });
+            return data;
+        }
+
+        // ========== Result ==========
+        function showResult(id, data, isError) {
+            var div = document.getElementById(id);
+            div.className = 'result-box ' + (isError ? 'error' : 'success');
+            div.innerHTML = '<div class="result-title">' + (isError ? '❌ 请求失败' : '✅ 请求完成') + '</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
+        }
+
+        // ========== API ==========
+        async function apiRequest(method, path, body) {
+            var endpoint = document.getElementById('endpoint').value.replace(/\/$/, '');
+            var url = endpoint + path;
+            var headers = await getHeaders();
+            var opts = { method: method, headers: headers };
+            if (body && method !== 'GET') opts.body = JSON.stringify(body);
+            var resp = await fetch(url, opts);
+            var text = await resp.text();
+            try { return JSON.parse(text); } catch (e) { throw new Error('HTTP ' + resp.status + ': ' + text.substring(0, 500)); }
+        }
+
+        // ========== 添加标签 ==========
+        async function addTags() {
+            var data = getUserTagsData('add');
+            if (data.length === 0) { alert('请至少输入一个用户和标签'); return; }
+            try { var r = await apiRequest('PATCH', '/im/v2/user_tags', { user_tags: data }); showResult('add-result', r, r.code !== 200); }
+            catch (e) { showResult('add-result', { error: e.message }, true); }
+        }
+
+        // ========== 覆盖标签 ==========
+        async function replaceTags() {
+            var data = getUserTagsData('replace');
+            if (data.length === 0) { alert('请至少输入一个用户和标签'); return; }
+            try { var r = await apiRequest('PATCH', '/im/v2/user_tags/actions/replace', { user_tags: data }); showResult('replace-result', r, r.code !== 200); }
+            catch (e) { showResult('replace-result', { error: e.message }, true); }
+        }
+
+        // ========== 查询标签 ==========
+        async function queryTags() {
+            var text = document.getElementById('query-accounts').value.trim();
+            if (!text) { alert('请输入用户账号'); return; }
+            var ids = text.split('\n').map(function(a) { return a.trim(); }).filter(function(a) { return a; });
+            if (ids.length === 0) { alert('请输入有效的用户账号'); return; }
+            try { var r = await apiRequest('GET', '/im/v2/user_tags?account_ids=' + ids.join(',')); showResult('query-result', r, r.code !== 200); }
+            catch (e) { showResult('query-result', { error: e.message }, true); }
+        }
+
+        // ========== 删除标签 ==========
+        async function deleteTags() {
+            var data = getUserTagsData('delete');
+            if (data.length === 0) { alert('请至少输入一个用户和标签'); return; }
+            try { var r = await apiRequest('DELETE', '/im/v2/user_tags', { user_tags: data }); showResult('delete-result', r, r.code !== 200); }
+            catch (e) { showResult('delete-result', { error: e.message }, true); }
+        }
+
+        // ========== 清空标签 ==========
+        async function clearTags() {
+            var text = document.getElementById('clear-accounts').value.trim();
+            if (!text) { alert('请输入用户账号'); return; }
+            if (!confirm('⚠️ 确定要清空这些用户的全部标签吗？此操作不可恢复！')) return;
+            var ids = text.split('\n').map(function(a) { return a.trim(); }).filter(function(a) { return a; });
+            try { var r = await apiRequest('DELETE', '/im/v2/user_tags/actions/clear', { account_ids: ids }); showResult('clear-result', r, r.code !== 200); }
+            catch (e) { showResult('clear-result', { error: e.message }, true); }
+        }
+
+        // ========== 发送推送 ==========
+        async function sendPush() {
+            var content = document.getElementById('push-content').value.trim();
+            var targetType = parseInt(document.getElementById('push-target-type').value);
+            var sender = document.getElementById('push-sender').value.trim();
+            var vendorContent = document.getElementById('push-content-vendor').value.trim();
+            var payloadStr = document.getElementById('push-payload').value.trim();
+
+            var targetOs = [];
+            ['ios','aos','pc','web','mac','harmony'].forEach(function(os) {
+                var cb = document.getElementById('os-' + os);
+                if (cb && cb.checked) targetOs.push(os);
+            });
+
+            var andStr = document.getElementById('push-tags-and').value.trim();
+            var orStr = document.getElementById('push-tags-or').value.trim();
+            var notStr = document.getElementById('push-tags-not').value.trim();
+
+            var condition = {};
+            if (andStr) condition.tags_and = andStr.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; });
+            if (orStr) condition.tags_or = orStr.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; });
+            if (notStr) condition.tags_not = notStr.split(',').map(function(t) { return t.trim(); }).filter(function(t) { return t; });
+
+            if (Object.keys(condition).length === 0) { alert('请至少设置一个标签条件'); return; }
+
+            var body = { target_type: targetType, condition: condition };
+            if (content) body.content = content;
+            if (sender) body.sender_account_id = sender;
+            if (targetOs.length > 0) body.target_os = targetOs;
+
+            var pushConfig = {};
+            if (vendorContent) pushConfig.push_content = vendorContent;
+            if (payloadStr) {
+                try { JSON.parse(payloadStr); pushConfig.push_payload = payloadStr; }
+                catch (e) { alert('Payload 必须是有效的 JSON'); return; }
+            }
+            if (Object.keys(pushConfig).length > 0) body.push_config = pushConfig;
+
+            try { var r = await apiRequest('POST', '/im/v2/push_notification/actions/tag', body); showResult('push-result', r, r.code !== 200); }
+            catch (e) { showResult('push-result', { error: e.message }, true); }
+        }
+    </script>
+</body>
+</html>
