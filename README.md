@@ -2,6 +2,10 @@
 
 基于云信 IM 服务端 API 的用户标签管理和推送工具。纯前端实现，可直接部署到 GitHub Pages。
 
+## 在线使用
+
+访问 GitHub Pages：https://iamyx.github.io/yxpush/
+
 ## 功能
 
 - **添加用户标签** - 批量为用户添加标签
@@ -11,28 +15,44 @@
 - **清空用户标签** - 清空用户的全部标签
 - **标签推送** - 根据标签条件发送推送消息
 
-## 在线使用
-
-访问 GitHub Pages：`https://<你的用户名>.github.io/yxpush/`
-
-## 本地使用
-
-直接用浏览器打开 `index.html` 即可。
-
 ## 配置说明
 
 首次使用需要在页面顶部填写：
 
 1. **App Key** - 云信应用的 App Key
 2. **App Secret** - 云信应用的 App Secret
-3. **服务地址** - 选择中国大陆或海外节点
+3. **代理地址 (Proxy URL)** - Cloudflare Worker 代理地址
 
 配置会自动保存在浏览器 localStorage 中，下次打开无需重新填写。
+
+## <a id="proxy-setup"></a>代理部署
+
+由于云信 API 不支持浏览器直接调用 (CORS 限制)，需要部署一个代理服务。推荐使用 Cloudflare Workers（免费额度足够）。
+
+### 部署步骤
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. 进入 **Workers & Pages** -> **Create** -> **Create Worker**
+3. 给 Worker 起个名字（如 `yunxin-proxy`），点击 **Deploy**
+4. 点击 **Edit code**，将 `worker.js` 的内容粘贴进去
+5. 点击 **Save and deploy**
+6. 复制 Worker 的 URL（如 `https://yunxin-proxy.xxx.workers.dev`）
+7. 在前端页面的"代理地址"中填入此 URL
+
+### Worker 代码
+
+```javascript
+// 见 worker.js 文件
+```
+
+## 本地使用
+
+直接用浏览器打开 `index.html` 即可（需要配置代理地址）。
 
 ## 注意事项
 
 1. **安全性**：App Secret 保存在浏览器本地，请勿在公共设备上使用
-2. **跨域问题**：如果云信 API 不支持浏览器直接调用，可能会遇到 CORS 错误，需要联系云信开通或使用代理方案
+2. **代理安全**：Worker 代码不会存储任何密钥，仅转发请求
 3. **频率限制**：标签推送接口限制 1次/10分钟，100次/天
 
 ## API 限制

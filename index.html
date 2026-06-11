@@ -88,16 +88,14 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>服务地址 (Endpoint)</label>
-                        <select id="endpoint" onchange="saveConfig()">
-                            <option value="https://api.netease.im">中国大陆 (api.netease.im)</option>
-                            <option value="https://api-sg01.netease.im">海外新加坡 (api-sg01.netease.im)</option>
-                        </select>
+                        <label>代理地址 (Proxy URL)</label>
+                        <input type="text" id="proxyUrl" placeholder="https://your-worker.workers.dev" onchange="saveConfig()">
                     </div>
                 </div>
                 <div class="warning-box">
                     ⚠️ <strong>安全提示：</strong>配置信息保存在浏览器本地 (localStorage)，不会上传到任何服务器。<br>
-                    如果云信 API 返回跨域错误 (CORS)，可能需要联系云信开通浏览器直接调用权限，或使用自建代理方案。
+                    ⚠️ <strong>代理配置：</strong>由于云信 API 不支持浏览器直接调用 (CORS)，需要部署 Cloudflare Worker 代理。<br>
+                    部署方法见 <a href="https://github.com/IamYx/yxpush#proxy-setup" target="_blank" style="color:#e65100;text-decoration:underline;">README</a>。
                 </div>
             </div>
         </div>
@@ -262,7 +260,7 @@
         function loadConfig() {
             document.getElementById('appKey').value = localStorage.getItem('yxpush_appKey') || '';
             document.getElementById('appSecret').value = localStorage.getItem('yxpush_appSecret') || '';
-            document.getElementById('endpoint').value = localStorage.getItem('yxpush_endpoint') || 'https://api.netease.im';
+            document.getElementById('proxyUrl').value = localStorage.getItem('yxpush_proxyUrl') || '';
             if (localStorage.getItem('yxpush_appKey') && localStorage.getItem('yxpush_appSecret')) {
                 document.getElementById('config-status').style.display = 'inline';
             }
@@ -271,7 +269,7 @@
         function saveConfig() {
             localStorage.setItem('yxpush_appKey', document.getElementById('appKey').value.trim());
             localStorage.setItem('yxpush_appSecret', document.getElementById('appSecret').value.trim());
-            localStorage.setItem('yxpush_endpoint', document.getElementById('endpoint').value);
+            localStorage.setItem('yxpush_proxyUrl', document.getElementById('proxyUrl').value.trim());
             var s = document.getElementById('config-status');
             s.style.display = 'inline';
             setTimeout(function() { s.style.display = 'none'; }, 2000);
@@ -283,23 +281,6 @@
         }
 
         loadConfig();
-
-        // ========== SHA1 ==========
-        async function sha1(message) {
-            var buf = new TextEncoder().encode(message);
-            var hash = await crypto.subtle.digest('SHA-1', buf);
-            return Array.from(new Uint8Array(hash)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-        }
-
-        async function getHeaders() {
-            var appKey = document.getElementById('appKey').value.trim();
-            var appSecret = document.getElementById('appSecret').value.trim();
-            if (!appKey || !appSecret) throw new Error('请先在上方配置 App Key 和 App Secret');
-            var nonce = Math.random().toString(36).substring(2, 15);
-            var curTime = Math.floor(Date.now() / 1000).toString();
-            var checkSum = await sha1(appSecret + nonce + curTime);
-            return { 'Content-Type': 'application/json;charset=utf-8', 'AppKey': appKey, 'Nonce': nonce, 'CurTime': curTime, 'CheckSum': checkSum };
-        }
 
         // ========== Tab ==========
         function switchTab(name, btn) {
@@ -362,13 +343,28 @@
             div.innerHTML = '<div class="result-title">' + (isError ? '❌ 请求失败' : '✅ 请求完成') + '</div><pre>' + JSON.stringify(data, null, 2) + '</pre>';
         }
 
-        // ========== API ==========
+        // ========== API (通过代理) ==========
         async function apiRequest(method, path, body) {
-            var endpoint = document.getElementById('endpoint').value.replace(/\/$/, '');
-            var url = endpoint + path;
-            var headers = await getHeaders();
+            var proxyUrl = document.getElementById('proxyUrl').value.trim();
+            if (!proxyUrl) {
+                throw new Error('请先配置代理地址 (Proxy URL)。由于 CORS 限制，需要通过 Cloudflare Worker 代理访问云信 API。');
+            }
+            var appKey = document.getElementById('appKey').value.trim();
+            var appSecret = document.getElementById('appSecret').value.trim();
+            if (!appKey || !appSecret) {
+                throw new Error('请先配置 App Key 和 App Secret');
+            }
+            
+            var url = proxyUrl.replace(/\/$/, '') + '/proxy' + path;
+            var headers = {
+                'Content-Type': 'application/json;charset=utf-8',
+                'X-App-Key': appKey,
+                'X-App-Secret': appSecret,
+            };
+            
             var opts = { method: method, headers: headers };
             if (body && method !== 'GET') opts.body = JSON.stringify(body);
+            
             var resp = await fetch(url, opts);
             var text = await resp.text();
             try { return JSON.parse(text); } catch (e) { throw new Error('HTTP ' + resp.status + ': ' + text.substring(0, 500)); }
