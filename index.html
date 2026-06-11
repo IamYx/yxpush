@@ -355,7 +355,7 @@
                 throw new Error('请先配置 App Key 和 App Secret');
             }
             
-            var url = proxyUrl.replace(/\/$/, '') + '/proxy' + path;
+            var url = proxyUrl.replace(/\/$/, '') + '/api/proxy' + path;
             var headers = {
                 'Content-Type': 'application/json;charset=utf-8',
                 'X-App-Key': appKey,
