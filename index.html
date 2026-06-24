@@ -356,6 +356,7 @@
             }
             
             var url = proxyUrl.replace(/\/$/, '') + '/api/proxy' + path;
+            console.log('[apiRequest]', method, url);
             var headers = {
                 'Content-Type': 'application/json;charset=utf-8',
                 'X-App-Key': appKey,
@@ -392,7 +393,8 @@
             if (!text) { alert('请输入用户账号'); return; }
             var ids = text.split('\n').map(function(a) { return a.trim(); }).filter(function(a) { return a; });
             if (ids.length === 0) { alert('请输入有效的用户账号'); return; }
-            try { var r = await apiRequest('GET', '/im/v2/user_tags?account_ids=' + ids.join(',')); showResult('query-result', r, r.code !== 200); }
+            var query = ids.map(function(id) { return 'account_ids=' + encodeURIComponent(id); }).join('&');
+            try { var r = await apiRequest('GET', '/im/v2/user_tags?' + query); showResult('query-result', r, r.code !== 200); }
             catch (e) { showResult('query-result', { error: e.message }, true); }
         }
 
